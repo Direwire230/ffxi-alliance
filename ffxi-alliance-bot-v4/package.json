@@ -1,0 +1,16 @@
+{
+  "name": "ffxi-alliance-bot",
+  "version": "1.1.0",
+  "description": "FFXI alliance signup Discord bot with event templates and live slot updates.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  }
+}
