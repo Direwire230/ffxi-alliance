@@ -44,11 +44,11 @@ const commands = [
     .addSubcommand(sub => sub
       .setName('fromsignups')
       .setDescription('Mark everyone currently signed up for an event as present')
-      .addIntegerOption(o => o.setName('event_id').setDescription('Event ID from /event list').setRequired(true)))
+      .addStringOption(o => o.setName('event').setDescription('Choose an open/recent event').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sub => sub
       .setName('mark')
       .setDescription('Manually mark one person for attendance')
-      .addIntegerOption(o => o.setName('event_id').setDescription('Event ID from /event list').setRequired(true))
+      .addStringOption(o => o.setName('event').setDescription('Choose an open/recent event').setRequired(true).setAutocomplete(true))
       .addUserOption(o => o.setName('user').setDescription('Discord user to mark').setRequired(false))
       .addStringOption(o => o.setName('name').setDescription('Character/name to mark if not using a Discord user').setRequired(false))
       .addStringOption(o => o.setName('status').setDescription('Attendance status').setRequired(false)
@@ -62,7 +62,7 @@ const commands = [
     .addSubcommand(sub => sub
       .setName('list')
       .setDescription('Generate a list of names for an event')
-      .addIntegerOption(o => o.setName('event_id').setDescription('Event ID from /event list').setRequired(true))
+      .addStringOption(o => o.setName('event').setDescription('Choose an open/recent event').setRequired(true).setAutocomplete(true))
       .addStringOption(o => o.setName('status').setDescription('Filter by status').setRequired(false)
         .addChoices(
           { name: 'All', value: 'all' },
@@ -74,7 +74,7 @@ const commands = [
     .addSubcommand(sub => sub
       .setName('clear')
       .setDescription('Clear attendance records for an event')
-      .addIntegerOption(o => o.setName('event_id').setDescription('Event ID from /event list').setRequired(true))),
+      .addStringOption(o => o.setName('event').setDescription('Choose an open/recent event').setRequired(true).setAutocomplete(true))),
 
   new SlashCommandBuilder()
     .setName('template')
@@ -86,6 +86,11 @@ const commands = [
       .setDescription('Create a blank template')
       .addStringOption(o => o.setName('name').setDescription('Template name').setRequired(true))
       .addStringOption(o => o.setName('description').setDescription('Short description').setRequired(false)))
+    .addSubcommand(sub => sub
+      .setName('delete')
+      .setDescription('Delete a saved template and all of its template slots')
+      .addStringOption(o => o.setName('template').setDescription('Template name').setRequired(true).setAutocomplete(true))
+      .addStringOption(o => o.setName('confirm').setDescription('Type DELETE to confirm').setRequired(true)))
     .addSubcommand(sub => sub
       .setName('setslot')
       .setDescription('Set a specific job for a template slot')

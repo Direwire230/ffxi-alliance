@@ -45,6 +45,7 @@ export function initDb() {
       note TEXT DEFAULT '',
       user_id TEXT,
       display_name TEXT,
+      selected_job TEXT,
       signed_at TEXT,
       FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
     );
@@ -76,6 +77,11 @@ export function initDb() {
       FOREIGN KEY(user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
     );
   `);
+
+  const cols = db.prepare("PRAGMA table_info(event_slots)").all().map(c => c.name);
+  if (!cols.includes('selected_job')) {
+    db.prepare("ALTER TABLE event_slots ADD COLUMN selected_job TEXT").run();
+  }
 }
 
 export function seedDefaultTemplates() {

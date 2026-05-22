@@ -7,11 +7,11 @@ import {
 } from 'discord.js';
 import { db } from './db.js';
 
-const FFXI_JOBS = [
+export const FFXI_JOBS = [
   'WAR','MNK','WHM','BLM','RDM','THF','PLD','DRK','BST','BRD','RNG','SAM','NIN','DRG','SMN','BLU','COR','PUP','DNC','SCH','GEO','RUN'
 ];
 
-const JOB_GROUPS = {
+export const JOB_GROUPS = {
   DD: ['WAR','MNK','THF','DRK','BST','RNG','SAM','NIN','DRG','BLU','PUP','DNC'],
   TANK: ['PLD','RUN','NIN'],
   HEALER: ['WHM','SCH','RDM'],
@@ -30,11 +30,46 @@ export function getUserJobs(userId) {
 }
 
 export function slotMatchesUserJobs(slotJob, userJobs) {
+  return getMatchingJobsForSlot(slotJob, userJobs).length > 0;
+}
+
+export function getMatchingJobsForSlot(slotJob, userJobs) {
   const job = normalizeJob(slotJob);
-  if (!userJobs?.length) return false;
-  if (userJobs.includes(job)) return true;
+  const savedJobs = (userJobs || []).map(normalizeJob).filter(Boolean);
+  if (!savedJobs.length) return [];
+
+  if (FFXI_JOBS.includes(job)) {
+    return savedJobs.includes(job) ? [job] : [];
+  }
+
   const group = JOB_GROUPS[job];
-  return !!group && group.some(j => userJobs.includes(j));
+  if (!group) return [];
+  return group.filter(j => savedJobs.includes(j));
+}
+
+export function isFlexibleRole(job) {
+  return Boolean(JOB_GROUPS[normalizeJob(job)]);
+}
+
+export function formatSlotRequirement(job) {
+  const normalized = normalizeJob(job);
+  return normalized;
+}
+
+export function formatChosenJobForSlot(slotOrJob, selectedJobRaw = null) {
+  const baseJob = normalizeJob(typeof slotOrJob === 'object' ? slotOrJob.job : slotOrJob);
+  const selectedJob = normalizeJob(selectedJobRaw ?? (typeof slotOrJob === 'object' ? slotOrJob.selected_job : null));
+
+  // For flexible role slots like DD, Tank, Healer, Support, Mage, Nuke, or Pet,
+  // show the actual job the player selected while still preserving the role label.
+  // Example: MNK (DD), WHM (HEALER), RUN (TANK).
+  if (selectedJob && selectedJob !== baseJob) return `${selectedJob} (${baseJob})`;
+  if (selectedJob) return selectedJob;
+  return baseJob;
+}
+
+export function getDisplayJob(slot) {
+  return formatChosenJobForSlot(slot);
 }
 
 export function formatJobList(jobs) {
@@ -69,7 +104,8 @@ export function buildEventEmbed(eventId) {
 
   const embed = new EmbedBuilder()
     .setTitle(event.name)
-    .setDescription(`Template: **${event.template_name}**${event.event_time ? `\nTime: **${event.event_time}**` : ''}\nStatus: **${event.locked ? 'Locked' : 'Open'}**\nFilled: **${filled}/${total}**`)
+    .setDescription(`Event: **#${event.id}**\nTemplate: **${event.template_name}**${event.event_time ? `\nTime: **${event.event_time}**` : ''}\nStatus: **${event.locked ? 'Locked' : 'Open'}**\nFilled: **${filled}/${total}**`)
+    .setFooter({ text: `Event ID: ${event.id}` })
     .setColor(event.locked ? 0x777777 : 0x2f80ed);
 
   const alliances = [...new Set(slots.map(s => s.alliance_number))];
@@ -83,7 +119,8 @@ export function buildEventEmbed(eventId) {
       value += partySlots.map(s => {
         const who = s.user_id ? `<@${s.user_id}>` : 'Open';
         const leaderMark = leader?.id === s.id ? ' 👑' : '';
-        return `\`${s.slot_number}. ${s.job.padEnd(7, ' ')}\` — ${who}${leaderMark}`;
+        const displayJob = getDisplayJob(s);
+        return `\`${s.slot_number}. ${displayJob.padEnd(12, ' ')}\` — ${who}${leaderMark}`;
       }).join('\n') + '\n\n';
     }
     embed.addFields({ name: `Alliance ${a}`, value: value.slice(0, 1024) || 'No slots' });
@@ -185,11 +222,16 @@ export function buildSlotPicker(eventId, allianceNumber, partyNumber, userId) {
   `).all(eventId, allianceNumber, partyNumber, userId)
     .filter(s => slotMatchesUserJobs(s.job, userJobs));
 
-  const options = slots.map(s => ({
-    label: `Slot ${s.slot_number} - ${s.job}`,
-    description: s.user_id ? 'Your current slot' : `Available based on your jobs: ${formatJobList(userJobs).slice(0, 60)}`,
-    value: String(s.id)
-  }));
+  const options = slots.flatMap(s => {
+    const matchingJobs = getMatchingJobsForSlot(s.job, userJobs);
+    return matchingJobs.map(chosenJob => ({
+      label: `Slot ${s.slot_number} - ${formatChosenJobForSlot(s.job, chosenJob)}`.slice(0, 100),
+      description: s.user_id
+        ? 'Your current slot'
+        : `Sign up as ${formatChosenJobForSlot(s.job, chosenJob)}`,
+      value: `${s.id}:${chosenJob}`
+    }));
+  }).slice(0, 25);
 
   if (!options.length) options.push({ label: 'No matching slots in this party', value: 'none', description: 'Pick another party or update /profile jobs.' });
 

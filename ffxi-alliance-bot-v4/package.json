@@ -1,7 +1,7 @@
 {
   "name": "ffxi-alliance-bot",
-  "version": "1.1.0",
-  "description": "FFXI alliance signup Discord bot with event templates and live slot updates.",
+  "version": "1.5.0",
+  "description": "FFXI alliance signup Discord bot with role-restricted event manager controls, attendance event picker, job profiles, and chosen-job display for flexible role slots.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
